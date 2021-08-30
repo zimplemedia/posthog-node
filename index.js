@@ -68,7 +68,7 @@ class PostHog {
             }
 
             this.featureFlagsPoller = new FeatureFlagsPoller({
-                featureFlagsPollingInterval:
+                pollingInterval:
                     typeof options.featureFlagsPollingInterval === 'number'
                         ? options.featureFlagsPollingInterval
                         : FIVE_MINUTES,
