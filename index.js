@@ -164,7 +164,7 @@ class PostHog {
         })
         delete apiMessage.alias
         delete apiMessage.distinctId
-        apiMessage.distinct_id = null
+        apiMessage.distinct_id = message.distinctId || message.distinct_id
 
         this.enqueue('alias', apiMessage, callback)
         return this
