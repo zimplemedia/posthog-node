@@ -366,7 +366,7 @@ test('alias - enqueue a message', (t) => {
     const apiMessage = {
         properties: { distinct_id: 'id', alias: 'id', $lib: 'posthog-node', $lib_version: version },
         event: '$create_alias',
-        distinct_id: null,
+        distinct_id: 'id',
     }
 
     client.alias(message, noop)
