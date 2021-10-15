@@ -5,6 +5,15 @@ const version = require('./package.json').version
 
 const LONG_SCALE = 0xfffffffffffffff
 
+class ClientError extends Error {
+    constructor(message, extra) {
+        super()
+        Error.captureStackTrace(this, this.constructor)
+        this.name = 'ClientError'
+        this.message = message
+        if (extra) this.extra = extra
+    }
+}
 
 class FeatureFlagsPoller {
     constructor({ pollingInterval, personalApiKey, projectApiKey, timeout, host, featureFlagCalledCallback }) {
@@ -72,16 +81,24 @@ class FeatureFlagsPoller {
         }
         this.poller = setTimeout(() => this._loadFeatureFlags(), this.pollingInterval)
 
-        const res = await this._request({ path: 'api/feature_flag', usePersonalApiKey: true })
+        try {
+            const res = await this._request({ path: 'api/feature_flag', usePersonalApiKey: true })
+            if (res && res.status === 401) {
+                throw new ClientError(
+                    `Your personalApiKey is invalid. Are you sure you're not using your Project API key? More information: https://posthog.com/docs/api/overview`
+                )
+            }
 
-        if (res && res.status === 401) {
-            throw new Error(
-                `Your personalApiKey is invalid. Are you sure you're not using your Project API key? More information: https://posthog.com/docs/api/overview`
-            )
+            this.featureFlags = res.data.results.filter(flag => flag.active)
+
+            this.loadedSuccessfullyOnce = true
+        } catch (err) {
+            // if an error that is not an instance of ClientError is thrown
+            // we silently ignore the error when reloading feature flags
+            if (err instanceof ClientError) {
+                throw err
+            }
         }
-
-        this.featureFlags = res.data.results.filter(flag => flag.active)
-        this.loadedSuccessfullyOnce = true
     }
 
     // sha1('a.b') should equal '69f6642c9d71b463485b4faf4e989dc3fe77a8c6'
@@ -124,6 +141,7 @@ class FeatureFlagsPoller {
         if (this.timeout) {
             req.timeout = typeof this.timeout === 'string' ? ms(this.timeout) : this.timeout
         }
+
 
         let res
         try {
