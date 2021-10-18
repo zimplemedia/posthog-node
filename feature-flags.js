@@ -11,7 +11,9 @@ class ClientError extends Error {
         Error.captureStackTrace(this, this.constructor)
         this.name = 'ClientError'
         this.message = message
-        if (extra) this.extra = extra
+        if (extra) {
+            this.extra = extra
+        }
     }
 }
 
