@@ -65,7 +65,7 @@ test.before.cb((t) => {
             // if the personal api key with the value "my very secret key for error"
             // we return a 502 response
             if (apiKey.includes('my very secret key for error')) {
-                return res.status(502).json({
+                return res.status(406).json({
                     error: { message: 'internal server error' },
                 })
             }
@@ -502,4 +502,40 @@ test('feature flags - handles errrors when flag reloads', async (t) => {
     t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
 
     client.shutdown()
+})
+
+
+// test('feature flags - logs errors when posthog:node is set', async (t) => {
+//     t.is(process.env.DEBUG, undefined)
+//     process.env.DEBUG = 'posthog:node'
+//     console.log(`process.env.DEBUG:`, process.env.DEBUG)
+
+//     const logger = spy(console, 'log')
+
+//     const client = createClient({ personalApiKey: 'my very secret key for error' })
+
+//     t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
+
+//     t.is(logger.called, true)
+
+//     client.shutdown()
+
+
+//     logger.restore()
+//     process.env.DEBUG = undefined
+// })
+
+test('feature flags - ignores logging errors when posthog:node is not set', async (t) => {
+    t.is(process.env.DEBUG, undefined)
+
+    const logger = spy(console, 'log')
+
+    const client = createClient({ personalApiKey: 'my very secret key for error' })
+
+    t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
+
+    t.is(logger.called, false)
+
+    client.shutdown()
+    logger.restore()
 })
