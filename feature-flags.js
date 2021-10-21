@@ -5,22 +5,6 @@ const version = require('./package.json').version
 
 const LONG_SCALE = 0xfffffffffffffff
 
-
-/**
- * Helper message to conditionally log a message to stdout,
- * if the `posthog:node` parameter is set for the `DEBUG` environment variable.
- *
- * @param {*} message the message to log
- */
- function debugMessage(message) {
-    const debugEnvironment = (process.env.DEBUG || '').split(',')
-    const shouldLogMessage = debugEnvironment.includes('posthog:node')
-
-    if (shouldLogMessage) {
-        console.log(message)
-    }
-}
-
 class ClientError extends Error {
     constructor(message, extra) {
         super()
@@ -111,8 +95,6 @@ class FeatureFlagsPoller {
 
             this.loadedSuccessfullyOnce = true
         } catch (err) {
-            debugMessage(`Error occurred while loading feature flags: ${err.message}`, err.stack)
-
             // if an error that is not an instance of ClientError is thrown
             // we silently ignore the error when reloading feature flags
             if (err instanceof ClientError) {

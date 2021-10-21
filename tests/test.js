@@ -504,27 +504,6 @@ test('feature flags - handles errrors when flag reloads', async (t) => {
     client.shutdown()
 })
 
-
-// test('feature flags - logs errors when posthog:node is set', async (t) => {
-//     t.is(process.env.DEBUG, undefined)
-//     process.env.DEBUG = 'posthog:node'
-//     console.log(`process.env.DEBUG:`, process.env.DEBUG)
-
-//     const logger = spy(console, 'log')
-
-//     const client = createClient({ personalApiKey: 'my very secret key for error' })
-
-//     t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
-
-//     t.is(logger.called, true)
-
-//     client.shutdown()
-
-
-//     logger.restore()
-//     process.env.DEBUG = undefined
-// })
-
 test('feature flags - ignores logging errors when posthog:node is not set', async (t) => {
     t.is(process.env.DEBUG, undefined)
 
