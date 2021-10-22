@@ -65,7 +65,7 @@ test.before.cb((t) => {
             // if the personal api key with the value "my very secret key for error"
             // we return a 502 response
             if (apiKey.includes('my very secret key for error')) {
-                return res.status(406).json({
+                return res.status(502).json({
                     error: { message: 'internal server error' },
                 })
             }
