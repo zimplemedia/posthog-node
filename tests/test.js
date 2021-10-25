@@ -8,7 +8,6 @@ import PostHog from '../index'
 import { version } from '../package'
 import { mockSimpleFlagResponse } from './assets/mockFlagsResponse'
 
-
 const noop = () => {}
 
 const port = 6042
@@ -60,11 +59,22 @@ test.before.cb((t) => {
             res.json({})
         })
         .get('/api/feature_flag', (req, res) => {
+            const authorization = req.headers['authorization']
+            const apiKey = authorization.replace('Bearer ', '')
+
+            // if the personal api key with the value "my very secret key for error"
+            // we return a 502 response
+            if (apiKey.includes('my very secret key for error')) {
+                return res.status(502).json({
+                    error: { message: 'internal server error' },
+                })
+            }
+
             return res.status(200).json(mockSimpleFlagResponse)
         })
         .post('/decide', (req, res) => {
             return res.status(200).json({
-                featureFlags: ['enabled-flag']
+                featureFlags: ['enabled-flag'],
             })
         })
         .listen(port, t.end)
@@ -275,7 +285,7 @@ test('flush - time out if configured', async (t) => {
         },
     ]
     await t.throws(client.flush(), 'timeout of 500ms exceeded')
-}) 
+})
 
 test('flush - skip when client is disabled', async (t) => {
     const client = createClient({ enable: false })
@@ -427,7 +437,10 @@ test('allows messages > 32 kB', (t) => {
 test('feature flags - require personalApiKey', async (t) => {
     const client = createClient()
 
-    await t.throws(client.isFeatureEnabled('simpleFlag', 'some id'), 'You have to specify the option personalApiKey to use feature flags.')
+    await t.throws(
+        client.isFeatureEnabled('simpleFlag', 'some id'),
+        'You have to specify the option personalApiKey to use feature flags.'
+    )
 
     client.shutdown()
 })
@@ -469,12 +482,39 @@ test('feature flags - default override', async (t) => {
 test('feature flags - simple flag calculation', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
-    // This tests that the hashing + mathematical operations across libs are consistent 
-    let flagEnabled = client.featureFlagsPoller._isSimpleFlagEnabled({key: 'a', distinctId: 'b', rolloutPercentage: 42})
+    // This tests that the hashing + mathematical operations across libs are consistent
+    let flagEnabled = client.featureFlagsPoller._isSimpleFlagEnabled({
+        key: 'a',
+        distinctId: 'b',
+        rolloutPercentage: 42,
+    })
     t.is(flagEnabled, true)
 
-    flagEnabled = client.featureFlagsPoller._isSimpleFlagEnabled({key: 'a', distinctId: 'b', rolloutPercentage: 40})
+    flagEnabled = client.featureFlagsPoller._isSimpleFlagEnabled({ key: 'a', distinctId: 'b', rolloutPercentage: 40 })
     t.is(flagEnabled, false)
 
     client.shutdown()
+})
+
+test('feature flags - handles errrors when flag reloads', async (t) => {
+    const client = createClient({ personalApiKey: 'my very secret key for error' })
+
+    t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
+
+    client.shutdown()
+})
+
+test('feature flags - ignores logging errors when posthog:node is not set', async (t) => {
+    t.is(process.env.DEBUG, undefined)
+
+    const logger = spy(console, 'log')
+
+    const client = createClient({ personalApiKey: 'my very secret key for error' })
+
+    t.notThrows(() => client.featureFlagsPoller.loadFeatureFlags(true))
+
+    t.is(logger.called, false)
+
+    client.shutdown()
+    logger.restore()
 })
