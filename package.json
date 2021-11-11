@@ -42,7 +42,7 @@
         "funnels"
     ],
     "dependencies": {
-        "axios": "^0.21.1",
+        "axios": "0.24.0",
         "axios-retry": "^3.1.9",
         "component-type": "^1.2.1",
         "join-component": "^1.1.0",
