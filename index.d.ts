@@ -17,6 +17,13 @@ declare module 'posthog-node' {
 
     interface EventMessage extends IdentifyMessage {
         event: string
+        groups?: Record<string, string | number> // Mapping of group type to group id
+    }
+
+    interface GroupIdentifyMessage {
+        groupType: string
+        groupKey: string // Unique identifier for the group
+        properties?: Record<string | number, any>
     }
 
     export default class PostHog {
@@ -28,9 +35,10 @@ declare module 'posthog-node' {
          * A capture call requires:
          * @param distinctId which uniquely identifies your user
          * @param event We recommend using [verb] [noun], like movie played or movie updated to easily identify what your events mean later on.
-         * @param properties OPTIONAL | which can be a dict with any information you'd like to add
+         * @param properties OPTIONAL | which can be a object with any information you'd like to add
+         * @param groups OPTIONAL | object of what groups are related to this event, example: { company: 'id:5' }. Can be used to analyze companies instead of users.
          */
-        capture({ distinctId, event, properties }: EventMessage): void
+        capture({ distinctId, event, properties, groups }: EventMessage): void
 
         /**
          * @description Identify lets you add metadata on your users so you can more easily identify who they are in PostHog,
@@ -56,9 +64,9 @@ declare module 'posthog-node' {
 
 
         /**
-         * @description PostHog feature flags (https://posthog.com/docs/features/feature-flags) 
+         * @description PostHog feature flags (https://posthog.com/docs/features/feature-flags)
          * allow you to safely deploy and roll back new features. Once you've created a feature flag in PostHog,
-         * you can use this method to check if the flag is on for a given user, allowing you to create logic to turn 
+         * you can use this method to check if the flag is on for a given user, allowing you to create logic to turn
          * features on and off for different user groups or individual users.
          * IMPORTANT: To use this method, you need to specify `personalApiKey` in your config! More info: https://posthog.com/docs/api/overview
          * @param key the unique key of your feature flag
@@ -69,7 +77,17 @@ declare module 'posthog-node' {
 
 
         /**
-         * @description Force an immediate reload of the polled feature flags. Please note that they are 
+         * @description Sets a groups properties, which allows asking questions like "Who are the most active companies"
+         * using my product in PostHog.
+         *
+         * @param groupType Type of group (ex: 'company'). Limited to 5 per project
+         * @param groupKey Unique identifier for that type of group (ex: 'id:5')
+         * @param properties OPTIONAL | which can be a object with any information you'd like to add
+        */
+       groupIdentify({ groupType, groupKey, properties }: GroupIdentifyMessage): void
+
+        /**
+         * @description Force an immediate reload of the polled feature flags. Please note that they are
          * already polled automatically at a regular interval.
         */
         reloadFeatureFlags(): Promise<void>

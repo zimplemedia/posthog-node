@@ -22,6 +22,8 @@ function eventValidation(event, type) {
             return validateIdentifyEvent(event)
         case 'alias':
             return validateAliasEvent(event)
+        case 'groupIdentify':
+            return validateGroupIdentifyEvent(event)
         default:
             assert(0, 'Invalid event type: "' + type + '"')
     }
@@ -51,6 +53,15 @@ function validateIdentifyEvent(event) {
 function validateAliasEvent(event) {
     assert(event.distinctId, 'You must pass a "distinctId".')
     assert(event.alias, 'You must pass a "alias".')
+}
+
+/**
+ * Validate an "groupIdentify" event.
+ */
+
+ function validateGroupIdentifyEvent(event) {
+    assert(event.groupType, 'You must pass a "groupType".')
+    assert(event.groupKey, 'You must pass a "groupKey".')
 }
 
 /**
