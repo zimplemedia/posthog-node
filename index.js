@@ -131,12 +131,17 @@ class PostHog {
     capture(message, callback) {
         this._validate(message, 'capture')
 
-        const apiMessage = Object.assign({}, message, {
-            properties: Object.assign({}, message.properties, {
-                $lib: 'posthog-node',
-                $lib_version: version,
-            }),
+        const properties = Object.assign({}, message.properties, {
+            $lib: 'posthog-node',
+            $lib_version: version,
         })
+
+        if ('groups' in message) {
+            properties.$groups = message.groups
+            delete message.groups
+        }
+
+        const apiMessage = Object.assign({}, message, { properties })
 
         this.enqueue('capture', apiMessage, callback)
         return this
@@ -168,6 +173,30 @@ class PostHog {
 
         this.enqueue('alias', apiMessage, callback)
         return this
+    }
+
+    /**
+     * @description Sets a groups properties, which allows asking questions like "Who are the most active companies"
+     * using my product in PostHog.
+     *
+     * @param groupType Type of group (ex: 'company'). Limited to 5 per project
+     * @param groupKey Unique identifier for that type of group (ex: 'id:5')
+     * @param properties OPTIONAL | which can be a object with any information you'd like to add
+     */
+    groupIdentify(message, callback) {
+        this._validate(message, 'groupIdentify')
+
+        const captureMessage = {
+            event: '$groupidentify',
+            distinctId: `\$${message.groupType}_${message.groupKey}`,
+            properties: {
+                $group_type: message.groupType,
+                $group_key: message.groupKey,
+                $group_set: message.properties || {}
+            }
+        }
+
+        return this.capture(captureMessage, callback)
     }
 
     /**

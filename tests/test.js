@@ -350,6 +350,27 @@ test('capture - enqueue a message', (t) => {
     t.deepEqual(client.enqueue.firstCall.args, ['capture', apiMessage, noop])
 })
 
+test('capture - enqueue a message with groups', (t) => {
+    const client = createClient()
+    stub(client, 'enqueue')
+
+    const message = {
+        distinctId: '1',
+        event: 'event',
+        groups: { company: 'id: 5'}
+    }
+    const apiMessage = {
+        distinctId: '1',
+        properties: { $groups: { company: 'id: 5'}, $lib: 'posthog-node', $lib_version: version },
+        event: 'event',
+    }
+
+    client.capture(message, noop)
+
+    t.true(client.enqueue.calledOnce)
+    t.deepEqual(client.enqueue.firstCall.args, ['capture', apiMessage, noop])
+})
+
 test('capture - require event and either distinctId or alias', (t) => {
     const client = createClient()
     stub(client, 'enqueue')
@@ -396,6 +417,48 @@ test('alias - require alias and distinctId', (t) => {
         client.alias({
             distinctId: 'id',
             alias: 'id',
+        })
+    })
+})
+
+test('groupIdentify - enqueue a message', (t) => {
+    const client = createClient()
+    stub(client, 'enqueue')
+
+    const message = {
+        groupType: 'company',
+        groupKey: 'id:5',
+        properties: { foo: 'bar' }
+    }
+    const apiMessage = {
+        properties: {
+            $group_type: 'company',
+            $group_key: 'id:5',
+            $group_set: { foo: 'bar' },
+            $lib: 'posthog-node',
+            $lib_version: version
+        },
+        event: '$groupidentify',
+        distinctId: '$company_id:5',
+    }
+
+    client.groupIdentify(message, noop)
+
+    t.true(client.enqueue.calledOnce)
+    t.deepEqual(client.enqueue.firstCall.args, ['capture', apiMessage, noop])
+})
+
+test('groupIdentify - require groupType and groupKey', (t) => {
+    const client = createClient()
+    stub(client, 'enqueue')
+
+    t.throws(() => client.groupIdentify(), 'You must pass a message object.')
+    t.throws(() => client.groupIdentify({}), 'You must pass a "groupType".')
+    t.throws(() => client.groupIdentify({ groupType: 'company' }), 'You must pass a "groupKey".')
+    t.notThrows(() => {
+        client.groupIdentify({
+            groupType: 'company',
+            groupKey: 'id:5',
         })
     })
 })
