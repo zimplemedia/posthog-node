@@ -81,6 +81,27 @@ test.before.cb((t) => {
         .listen(port, t.end)
 })
 
+let requestSpy = spy(axios, 'request')
+
+test.afterEach(() => {
+    requestSpy.resetHistory()
+})
+
+function callsDecide(expectedData) {
+    const config = {
+        method: 'POST',
+        url: 'http://localhost:6042/decide/',
+        headers: {
+            'Content-Type': 'application/json',
+            'user-agent': 'posthog-node/1.2.0',
+        },
+    }
+    if (expectedData) {
+        config.data = JSON.stringify(expectedData)
+    }
+    return requestSpy.calledWith(config)
+}
+
 test('expose a constructor', (t) => {
     t.is(typeof PostHog, 'function')
 })
@@ -358,11 +379,11 @@ test('capture - enqueue a message with groups', (t) => {
     const message = {
         distinctId: '1',
         event: 'event',
-        groups: { company: 'id: 5'}
+        groups: { company: 'id: 5' },
     }
     const apiMessage = {
         distinctId: '1',
-        properties: { $groups: { company: 'id: 5'}, $lib: 'posthog-node', $lib_version: version },
+        properties: { $groups: { company: 'id: 5' }, $lib: 'posthog-node', $lib_version: version },
         event: 'event',
     }
 
@@ -429,7 +450,7 @@ test('groupIdentify - enqueue a message', (t) => {
     const message = {
         groupType: 'company',
         groupKey: 'id:5',
-        properties: { foo: 'bar' }
+        properties: { foo: 'bar' },
     }
     const apiMessage = {
         properties: {
@@ -437,7 +458,7 @@ test('groupIdentify - enqueue a message', (t) => {
             $group_key: 'id:5',
             $group_set: { foo: 'bar' },
             $lib: 'posthog-node',
-            $lib_version: version
+            $lib_version: version,
         },
         event: '$groupidentify',
         distinctId: '$company_id:5',
@@ -501,10 +522,9 @@ test('allows messages > 32 kB', (t) => {
 test('feature flags - require personalApiKey', async (t) => {
     const client = createClient()
 
-    await t.throwsAsync(
-        () => client.isFeatureEnabled('simpleFlag', 'some id'),
-        { message: 'You have to specify the option personalApiKey to use feature flags.' }
-    )
+    await t.throwsAsync(() => client.isFeatureEnabled('simpleFlag', 'some id'), {
+        message: 'You have to specify the option personalApiKey to use feature flags.',
+    })
 
     client.shutdown()
 })
@@ -512,42 +532,31 @@ test('feature flags - require personalApiKey', async (t) => {
 test('feature flags - require key, distinctId, defaultValue', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
-    await t.throwsAsync(
-        () => client.isFeatureEnabled(),
-        { message: 'You must pass a "key".' }
-    )
-    await t.throwsAsync(
-        () => client.isFeatureEnabled(null),
-        { message: 'You must pass a "key".' }
-    )
-    await t.throwsAsync(
-        () => client.isFeatureEnabled("my-flag"),
-        { message: 'You must pass a "distinctId".' }
-    )
-    await t.throwsAsync(
-        () => client.isFeatureEnabled("my-flag", "some-id", "default-value"),
-        { message: '"defaultResult" must be a boolean.' }
-    )
-    await t.throwsAsync(
-        () => client.isFeatureEnabled("my-flag", "some-id", false, "foobar"),
-        { message: 'You must pass an object for "groups".' }
-    )
-
+    await t.throwsAsync(() => client.isFeatureEnabled(), { message: 'You must pass a "key".' })
+    await t.throwsAsync(() => client.isFeatureEnabled(null), { message: 'You must pass a "key".' })
+    await t.throwsAsync(() => client.isFeatureEnabled('my-flag'), { message: 'You must pass a "distinctId".' })
+    await t.throwsAsync(() => client.isFeatureEnabled('my-flag', 'some-id', 'default-value'), {
+        message: '"defaultResult" must be a boolean.',
+    })
+    await t.throwsAsync(() => client.isFeatureEnabled('my-flag', 'some-id', false, 'foobar'), {
+        message: 'You must pass an object for "groups".',
+    })
 
     client.shutdown()
 })
 
-test('feature flags - isSimpleFlag', async (t) => {
+test.serial('feature flags - isSimpleFlag', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
     const isEnabled = await client.isFeatureEnabled('simpleFlag', 'some id')
 
     t.is(isEnabled, true)
+    t.is(callsDecide({ distinct_id: 'some id', groups: {}, token: 'key' }), false)
 
     client.shutdown()
 })
 
-test('feature flags - complex flags', async (t) => {
+test.serial('feature flags - complex flags', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
     const expectedEnabledFlag = await client.isFeatureEnabled('enabled-flag', 'some id')
@@ -555,11 +564,23 @@ test('feature flags - complex flags', async (t) => {
 
     t.is(expectedEnabledFlag, true)
     t.is(expectedDisabledFlag, false)
+    t.is(callsDecide({ distinct_id: 'some id', groups: {}, token: 'key' }), true)
 
     client.shutdown()
 })
 
-test('feature flags - default override', async (t) => {
+test.serial('feature flags - group analytics', async (t) => {
+    const client = createClient({ personalApiKey: 'my very secret key' })
+
+    const expectedEnabledFlag = await client.isFeatureEnabled('enabled-flag', 'some id', false, { company: 'id:5' })
+
+    t.is(expectedEnabledFlag, true)
+    t.is(callsDecide({ distinct_id: 'some id', groups: { company: 'id:5' }, token: 'key' }), true)
+
+    client.shutdown()
+})
+
+test.serial('feature flags - default override', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
     let flagEnabled = await client.isFeatureEnabled('i-dont-exist', 'some id')

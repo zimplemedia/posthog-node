@@ -147,7 +147,7 @@ class FeatureFlagsPoller {
 
         let res
         try {
-            res = await axios(req)
+            res = await axios.request(req)
         } catch (err) {
             throw new Error(`Request to ${path} failed with error: ${err.message}`)
         }
