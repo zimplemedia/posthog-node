@@ -32,7 +32,7 @@ class FeatureFlagsPoller {
         void this.loadFeatureFlags()
     }
 
-    async isFeatureEnabled(key, distinctId, defaultResult = false) {
+    async isFeatureEnabled(key, distinctId, defaultResult = false, groups = {}) {
         await this.loadFeatureFlags()
 
         if (!this.loadedSuccessfullyOnce) {
@@ -61,7 +61,7 @@ class FeatureFlagsPoller {
                 rolloutPercentage: featureFlag.rolloutPercentage,
             })
         } else {
-            const res = await this._request({ path: 'decide', method: 'POST', data: { distinct_id: distinctId } })
+            const res = await this._request({ path: 'decide', method: 'POST', data: { distinct_id: distinctId, groups } })
             isFlagEnabledResponse = res.data.featureFlags.indexOf(key) >= 0
         }
 

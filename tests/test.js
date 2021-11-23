@@ -508,6 +508,34 @@ test('feature flags - require personalApiKey', async (t) => {
     client.shutdown()
 })
 
+test('feature flags - require key, distinctId, defaultValue', async (t) => {
+    const client = createClient({ personalApiKey: 'my very secret key' })
+
+    await t.throws(
+        client.isFeatureEnabled(),
+        'You must pass a "key".'
+    )
+    await t.throws(
+        client.isFeatureEnabled(null),
+        'You must pass a "key".'
+    )
+    await t.throws(
+        client.isFeatureEnabled("my-flag"),
+        'You must pass a "distinctId".'
+    )
+    await t.throws(
+        client.isFeatureEnabled("my-flag", "some-id", "default-value"),
+        '"defaultResult" must be a boolean.'
+    )
+    await t.throws(
+        client.isFeatureEnabled("my-flag", "some-id", false, "foobar"),
+        'You must pass an object for "groups".'
+    )
+
+
+    client.shutdown()
+})
+
 test('feature flags - isSimpleFlag', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
