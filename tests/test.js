@@ -1,12 +1,13 @@
-import { spy, stub } from 'sinon'
-import bodyParser from 'body-parser'
-import express from 'express'
-import delay from 'delay'
-import pify from 'pify'
-import test from 'ava'
-import PostHog from '../index'
-import { version } from '../package'
-import { mockSimpleFlagResponse } from './assets/mockFlagsResponse'
+const { spy, stub } = require('sinon')
+const bodyParser = require('body-parser')
+const express = require('express')
+const delay = require('delay')
+const pify = require('pify')
+const test = require('ava')
+const axios = require('axios')
+const PostHog = require('../index')
+const { version } = require('../package')
+const { mockSimpleFlagResponse } = require('./assets/mockFlagsResponse')
 
 const noop = () => {}
 
@@ -85,7 +86,7 @@ test('expose a constructor', (t) => {
 })
 
 test('require a api key', (t) => {
-    t.throws(() => new PostHog(), "You must pass your PostHog project's api key.")
+    t.throws(() => new PostHog(), { message: "You must pass your PostHog project's api key." })
 })
 
 test('create a queue', (t) => {
@@ -227,7 +228,7 @@ test('enqueue - skip when client is disabled', async (t) => {
 test("flush - don't fail when queue is empty", async (t) => {
     const client = createClient()
 
-    await t.notThrows(client.flush())
+    await t.notThrows(() => client.flush())
 })
 
 test('flush - send messages', async (t) => {
@@ -271,7 +272,7 @@ test('flush - respond with an error', async (t) => {
         },
     ]
 
-    await t.throws(client.flush(), 'Bad Request')
+    await t.throwsAsync(() => client.flush(), { message: 'Bad Request' })
 })
 
 test('flush - time out if configured', async (t) => {
@@ -284,7 +285,7 @@ test('flush - time out if configured', async (t) => {
             callback,
         },
     ]
-    await t.throws(client.flush(), 'timeout of 500ms exceeded')
+    await t.throwsAsync(() => client.flush(), { message: 'timeout of 500ms exceeded' })
 })
 
 test('flush - skip when client is disabled', async (t) => {
@@ -325,8 +326,8 @@ test('identify - require a distinctId or alias', (t) => {
     const client = createClient()
     stub(client, 'enqueue')
 
-    t.throws(() => client.identify(), 'You must pass a message object.')
-    t.throws(() => client.identify({}), 'You must pass a "distinctId".')
+    t.throws(() => client.identify(), { message: 'You must pass a message object.' })
+    t.throws(() => client.identify({}), { message: 'You must pass a "distinctId".' })
     t.notThrows(() => client.identify({ distinctId: 'id' }))
 })
 
@@ -375,9 +376,9 @@ test('capture - require event and either distinctId or alias', (t) => {
     const client = createClient()
     stub(client, 'enqueue')
 
-    t.throws(() => client.capture(), 'You must pass a message object.')
-    t.throws(() => client.capture({}), 'You must pass a "distinctId".')
-    t.throws(() => client.capture({ distinctId: 'id' }), 'You must pass an "event".')
+    t.throws(() => client.capture(), { message: 'You must pass a message object.' })
+    t.throws(() => client.capture({}), { message: 'You must pass a "distinctId".' })
+    t.throws(() => client.capture({ distinctId: 'id' }), { message: 'You must pass an "event".' })
     t.notThrows(() => {
         client.capture({
             distinctId: 'id',
@@ -410,9 +411,9 @@ test('alias - require alias and distinctId', (t) => {
     const client = createClient()
     stub(client, 'enqueue')
 
-    t.throws(() => client.alias(), 'You must pass a message object.')
-    t.throws(() => client.alias({}), 'You must pass a "distinctId".')
-    t.throws(() => client.alias({ distinctId: 'id' }), 'You must pass a "alias".')
+    t.throws(() => client.alias(), { message: 'You must pass a message object.' })
+    t.throws(() => client.alias({}), { message: 'You must pass a "distinctId".' })
+    t.throws(() => client.alias({ distinctId: 'id' }), { message: 'You must pass a "alias".' })
     t.notThrows(() => {
         client.alias({
             distinctId: 'id',
@@ -452,9 +453,9 @@ test('groupIdentify - require groupType and groupKey', (t) => {
     const client = createClient()
     stub(client, 'enqueue')
 
-    t.throws(() => client.groupIdentify(), 'You must pass a message object.')
-    t.throws(() => client.groupIdentify({}), 'You must pass a "groupType".')
-    t.throws(() => client.groupIdentify({ groupType: 'company' }), 'You must pass a "groupKey".')
+    t.throws(() => client.groupIdentify(), { message: 'You must pass a message object.' })
+    t.throws(() => client.groupIdentify({}), { message: 'You must pass a "groupType".' })
+    t.throws(() => client.groupIdentify({ groupType: 'company' }), { message: 'You must pass a "groupKey".' })
     t.notThrows(() => {
         client.groupIdentify({
             groupType: 'company',
@@ -500,9 +501,9 @@ test('allows messages > 32 kB', (t) => {
 test('feature flags - require personalApiKey', async (t) => {
     const client = createClient()
 
-    await t.throws(
-        client.isFeatureEnabled('simpleFlag', 'some id'),
-        'You have to specify the option personalApiKey to use feature flags.'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled('simpleFlag', 'some id'),
+        { message: 'You have to specify the option personalApiKey to use feature flags.' }
     )
 
     client.shutdown()
@@ -511,25 +512,25 @@ test('feature flags - require personalApiKey', async (t) => {
 test('feature flags - require key, distinctId, defaultValue', async (t) => {
     const client = createClient({ personalApiKey: 'my very secret key' })
 
-    await t.throws(
-        client.isFeatureEnabled(),
-        'You must pass a "key".'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled(),
+        { message: 'You must pass a "key".' }
     )
-    await t.throws(
-        client.isFeatureEnabled(null),
-        'You must pass a "key".'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled(null),
+        { message: 'You must pass a "key".' }
     )
-    await t.throws(
-        client.isFeatureEnabled("my-flag"),
-        'You must pass a "distinctId".'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled("my-flag"),
+        { message: 'You must pass a "distinctId".' }
     )
-    await t.throws(
-        client.isFeatureEnabled("my-flag", "some-id", "default-value"),
-        '"defaultResult" must be a boolean.'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled("my-flag", "some-id", "default-value"),
+        { message: '"defaultResult" must be a boolean.' }
     )
-    await t.throws(
-        client.isFeatureEnabled("my-flag", "some-id", false, "foobar"),
-        'You must pass an object for "groups".'
+    await t.throwsAsync(
+        () => client.isFeatureEnabled("my-flag", "some-id", false, "foobar"),
+        { message: 'You must pass an object for "groups".' }
     )
 
 
