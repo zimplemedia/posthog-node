@@ -247,9 +247,11 @@ class PostHog {
         }
     }
 
-    async isFeatureEnabled(key, distinctId, defaultResult) {
+    async isFeatureEnabled(key, distinctId, defaultResult = false, groups = {}) {
+        this._validate({ key, distinctId, defaultResult, groups }, 'isFeatureEnabled')
         assert(this.personalApiKey, 'You have to specify the option personalApiKey to use feature flags.')
-        return await this.featureFlagsPoller.isFeatureEnabled(key, distinctId, defaultResult)
+
+        return await this.featureFlagsPoller.isFeatureEnabled(key, distinctId, defaultResult, groups)
     }
 
     async reloadFeatureFlags() {

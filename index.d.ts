@@ -20,9 +20,12 @@ declare module 'posthog-node' {
         groups?: Record<string, string | number> // Mapping of group type to group id
     }
 
+    type GroupType = string
+    type GroupKey = string
+
     interface GroupIdentifyMessage {
-        groupType: string
-        groupKey: string // Unique identifier for the group
+        groupType: GroupType
+        groupKey: GroupKey // Unique identifier for the group
         properties?: Record<string | number, any>
     }
 
@@ -72,8 +75,9 @@ declare module 'posthog-node' {
          * @param key the unique key of your feature flag
          * @param distinctId the current unique id
          * @param defaultResult optional - default value to be returned if the feature flag is not on for the user
+         * @param groups optional - what groups are currently active (group analytics)
         */
-        isFeatureEnabled(key: string, distinctId: string, defaultResult?: boolean): Promise<boolean>
+        isFeatureEnabled(key: string, distinctId: string, defaultResult?: boolean, groups?: Record<GroupType, GroupKey>): Promise<boolean>
 
 
         /**
