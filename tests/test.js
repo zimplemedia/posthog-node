@@ -551,7 +551,7 @@ test.serial('feature flags - isSimpleFlag', async (t) => {
     const isEnabled = await client.isFeatureEnabled('simpleFlag', 'some id')
 
     t.is(isEnabled, true)
-    t.is(callsDecide({ distinct_id: 'some id', groups: {}, token: 'key' }), false)
+    t.is(callsDecide({ groups: {}, distinct_id: 'some id', token: 'key' }), false)
 
     client.shutdown()
 })
@@ -564,7 +564,7 @@ test.serial('feature flags - complex flags', async (t) => {
 
     t.is(expectedEnabledFlag, true)
     t.is(expectedDisabledFlag, false)
-    t.is(callsDecide({ distinct_id: 'some id', groups: {}, token: 'key' }), true)
+    t.is(callsDecide({ groups: {}, distinct_id: 'some id', token: 'key' }), true)
 
     client.shutdown()
 })
@@ -575,7 +575,7 @@ test.serial('feature flags - group analytics', async (t) => {
     const expectedEnabledFlag = await client.isFeatureEnabled('enabled-flag', 'some id', false, { company: 'id:5' })
 
     t.is(expectedEnabledFlag, true)
-    t.is(callsDecide({ distinct_id: 'some id', groups: { company: 'id:5' }, token: 'key' }), true)
+    t.is(callsDecide({ groups: { company: 'id:5' }, distinct_id: 'some id', token: 'key' }), true)
 
     client.shutdown()
 })
