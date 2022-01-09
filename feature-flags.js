@@ -32,7 +32,7 @@ class FeatureFlagsPoller {
         void this.loadFeatureFlags()
     }
 
-    async isFeatureEnabled(key, distinctId, defaultResult = false) {
+    async isFeatureEnabled(key, distinctId, defaultResult = false, groups = {}) {
         await this.loadFeatureFlags()
 
         if (!this.loadedSuccessfullyOnce) {
@@ -61,7 +61,7 @@ class FeatureFlagsPoller {
                 rolloutPercentage: featureFlag.rollout_percentage,
             })
         } else {
-            const res = await this._request({ path: 'decide', method: 'POST', data: { distinct_id: distinctId } })
+            const res = await this._request({ path: 'decide', method: 'POST', data: { groups, distinct_id: distinctId } })
             isFlagEnabledResponse = res.data.featureFlags.indexOf(key) >= 0
         }
 
@@ -147,7 +147,7 @@ class FeatureFlagsPoller {
 
         let res
         try {
-            res = await axios(req)
+            res = await axios.request(req)
         } catch (err) {
             throw new Error(`Request to ${path} failed with error: ${err.message}`)
         }
